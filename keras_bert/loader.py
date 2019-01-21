@@ -7,6 +7,7 @@ from .bert import get_model
 
 def load_trained_model_from_checkpoint(config_file,
                                        checkpoint_file,
+                                       classifier=False,
                                        training=False,
                                        seq_len=None):
     """Load trained official model from checkpoint.
@@ -34,6 +35,7 @@ def load_trained_model_from_checkpoint(config_file,
         head_num=config['num_attention_heads'],
         feed_forward_dim=config['intermediate_size'],
         training=training,
+        classifier=classifier
     )
     if not training:
         inputs, outputs = model
@@ -81,7 +83,17 @@ def load_trained_model_from_checkpoint(config_file,
             tf.train.load_variable(checkpoint_file, 'bert/encoder/layer_%d/output/LayerNorm/gamma' % i),
             tf.train.load_variable(checkpoint_file, 'bert/encoder/layer_%d/output/LayerNorm/beta' % i),
         ])
-    if training:
+
+    if training and if classifier:
+        model.get_layer(name='NSP-Dense').set_weights([
+            tf.train.load_variable(checkpoint_file, 'bert/pooler/dense/kernel'),
+            tf.train.load_variable(checkpoint_file, 'bert/pooler/dense/bias'),
+        ])
+        model.get_layer(name='NSP').set_weights([
+            tf.train.load_variable(checkpoint_file, 'output_weights'),
+            tf.train.load_variable(checkpoint_file, 'output_bias'),
+        ])
+    if training and if not classifier:
         model.get_layer(name='MLM-Dense').set_weights([
             tf.train.load_variable(checkpoint_file, 'cls/predictions/transform/dense/kernel'),
             tf.train.load_variable(checkpoint_file, 'cls/predictions/transform/dense/bias'),

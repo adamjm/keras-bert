@@ -32,6 +32,7 @@ def get_model(token_num,
               feed_forward_activation=gelu,
               custom_layers=None,
               training=True,
+              classifier=False,
               lr=1e-4):
     """Get BERT model.
 
@@ -83,32 +84,52 @@ def get_model(token_num,
         )
     if not training:
         return inputs[:2], transformed
-    mlm_dense_layer = keras.layers.Dense(
-        units=embed_dim,
-        activation=feed_forward_activation,
-        name='MLM-Dense',
-    )(transformed)
-    mlm_norm_layer = LayerNormalization(name='MLM-Norm')(mlm_dense_layer)
-    mlm_pred_layer = EmbeddingSimilarity(name='MLM-Sim')([mlm_norm_layer, embed_weights])
-    masked_layer = Masked(name='MLM')([mlm_pred_layer, inputs[-1]])
-    extract_layer = Extract(index=0, name='Extract')(transformed)
-    nsp_dense_layer = keras.layers.Dense(
-        units=embed_dim,
-        activation='tanh',
-        name='NSP-Dense',
-    )(extract_layer)
-    nsp_pred_layer = keras.layers.Dense(
-        units=2,
-        activation='softmax',
-        name='NSP',
-    )(nsp_dense_layer)
-    model = keras.models.Model(inputs=inputs, outputs=[masked_layer, nsp_pred_layer])
-    model.compile(
-        optimizer=keras.optimizers.Adam(lr=lr),
-        loss=keras.losses.sparse_categorical_crossentropy,
-        metrics=[],
-    )
-    return model
+    if training and if not classifier:
+        mlm_dense_layer = keras.layers.Dense(
+            units=embed_dim,
+            activation=feed_forward_activation,
+            name='MLM-Dense',
+        )(transformed)
+        mlm_norm_layer = LayerNormalization(name='MLM-Norm')(mlm_dense_layer)
+        mlm_pred_layer = EmbeddingSimilarity(name='MLM-Sim')([mlm_norm_layer, embed_weights])
+        masked_layer = Masked(name='MLM')([mlm_pred_layer, inputs[-1]])
+        extract_layer = Extract(index=0, name='Extract')(transformed)
+        nsp_dense_layer = keras.layers.Dense(
+            units=embed_dim,
+            activation='tanh',
+            name='NSP-Dense',
+        )(extract_layer)
+        nsp_pred_layer = keras.layers.Dense(
+            units=2,
+            activation='softmax',
+            name='NSP',
+        )(nsp_dense_layer)
+        model = keras.models.Model(inputs=inputs, outputs=[masked_layer, nsp_pred_layer])
+        model.compile(
+            optimizer=keras.optimizers.Adam(lr=lr),
+            loss=keras.losses.sparse_categorical_crossentropy,
+            metrics=[],
+        )
+        return model
+    if training and if classifier:
+        extract_layer = Extract(index=0, name='Extract')(transformed)
+        nsp_dense_layer = keras.layers.Dense(
+            units=embed_dim,
+            activation='tanh',
+            name='NSP-Dense',
+        )(extract_layer)
+        nsp_pred_layer = keras.layers.Dense(
+            units=2,
+            activation='softmax',
+            name='NSP',
+        )(nsp_dense_layer)
+        model = keras.models.Model(inputs=inputs, outputs=nsp_pred_layer)
+        model.compile(
+            optimizer=keras.optimizers.Adam(lr=lr),
+            loss=keras.losses.sparse_categorical_crossentropy,
+            metrics=[],
+        )
+        return model
 
 
 def get_custom_objects():
