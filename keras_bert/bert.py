@@ -84,7 +84,7 @@ def get_model(token_num,
         )
     if not training:
         return inputs[:2], transformed
-    if training and if not classifier:
+    if training and not classifier:
         mlm_dense_layer = keras.layers.Dense(
             units=embed_dim,
             activation=feed_forward_activation,
@@ -111,7 +111,7 @@ def get_model(token_num,
             metrics=[],
         )
         return model
-    if training and if classifier:
+    if training and classifier:
         extract_layer = Extract(index=0, name='Extract')(transformed)
         nsp_dense_layer = keras.layers.Dense(
             units=embed_dim,
