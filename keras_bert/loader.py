@@ -90,7 +90,7 @@ def load_trained_model_from_checkpoint(config_file,
             tf.train.load_variable(checkpoint_file, 'bert/pooler/dense/bias'),
         ])
         model.get_layer(name='NSP').set_weights([
-            tf.train.load_variable(checkpoint_file, 'output_weights'),
+            np.transpose(tf.train.load_variable(checkpoint_file, 'output_weights')),
             tf.train.load_variable(checkpoint_file, 'output_bias'),
         ])
     if training and not classifier:
